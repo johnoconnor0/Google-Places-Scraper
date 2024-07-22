@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Places Search</title>
+    <style>
+        body { font-family: Arial, sans-serif; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .place { margin: 10px 0; padding: 10px; border: 1px solid #ccc; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Places Search</h1>
+        <form id="search-form">
+            <input type="text" id="query" placeholder="Search Query" required>
+            <input type="text" id="location" placeholder="Location (lat,lng)" required>
+            <input type="number" id="radius" placeholder="Radius (meters)" required>
+            <button type="submit">Search</button>
+        </form>
+        <div id="results"></div>
+        <button id="export">Export to CSV</button>
+    </div>
+    <script>
+        document.getElementById('search-form').addEventListener('submit', async function(event) {
+            event.preventDefault();
+            const query = document.getElementById('query').value;
+            const location = document.getElementById('location').value;
+            const radius = document.getElementById('radius').value;
+
+            const response = await fetch('/search', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ query, location, radius })
+            });
+            const places = await response.json();
+            displayResults(places);
+        });
+
+        document.getElementById('export').addEventListener('click', async function() {
+            const places = Array.from(document.getElementsByClassName('place')).map(place => ({
+                name: place.querySelector('.name').innerText,
+                address: place.querySelector('.address').innerText,
+                rating: place.querySelector('.rating').innerText,
+                user_ratings_total: place.querySelector('.user_ratings_total').innerText,
+                logo: place.querySelector('.logo').src,
+                description: place.querySelector('.description').innerText,
+                opening_hours: place.querySelector('.opening_hours').innerText,
+                category: place.querySelector('.category').innerText
+            }));
+
+            await fetch('/export', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(places)
+            });
+            window.location.href = '/places.csv';
+        });
+
+        function displayResults(places) {
+            const results = document.getElementById('results');
+            results.innerHTML = '';
+            places.forEach(place => {
+                const placeElement = document.createElement('div');
+                placeElement.className = 'place';
+                placeElement.innerHTML = `
+                    <div class="name">${place.name}</div>
+                    <div class="address">${place.address}</div>
+                    <div class="rating">Rating: ${place.rating}</div>
+                    <div class="user_ratings_total">User Ratings: ${place.user_ratings_total}</div>
+                    <img class="logo" src="${place.logo}" alt="Logo">
+                    <div class="description">${place.description}</div>
+                    <div class="opening_hours">Opening Hours: ${place.opening_hours}</div>
+                    <div class="category">Category: ${place.category}</div>
+                `;
+                results.appendChild(placeElement);
+            });
+        }
+    </script>
+</body>
+</html>
